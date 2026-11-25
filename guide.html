@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雪花片圖解</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9D%84%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body class="viewer">
+<header class="top">
+  <a class="btn small" href="./">⌂ 首頁</a>
+  <div class="stage-name" id="stage"></div>
+  <div class="count" id="count"></div>
+</header>
+<main class="view"><img id="slide" alt=""></main>
+<nav class="bar">
+  <button class="btn" id="prev">◀ 上一頁</button>
+  <div class="pdots" id="pdots"></div>
+  <button class="btn main" id="next">下一頁 ▶</button>
+  <button class="btn small" id="full">⛶ 全螢幕</button>
+</nav>
+<script>
+const PAGES = [{"page": "p01", "stage": "階段一 認識單片", "text": "雪花片怎麼組合"}, {"page": "p02", "stage": "階段一 認識單片", "text": "這是雪花片"}, {"page": "p03", "stage": "階段一 認識單片", "text": "中間有一個洞"}, {"page": "p04", "stage": "階段一 認識單片", "text": "邊邊有8條縫"}, {"page": "p05", "stage": "階段一 認識單片", "text": "縫只到一半"}, {"page": "p06", "stage": "階段二 兩片組合", "text": "一片躺 一片站"}, {"page": "p07", "stage": "階段二 兩片組合", "text": "縫對縫"}, {"page": "p08", "stage": "階段二 兩片組合", "text": "慢慢推進去"}, {"page": "p09", "stage": "階段二 兩片組合", "text": "推到底 停住"}, {"page": "p10", "stage": "階段三 三片組合", "text": "再加一片"}, {"page": "p11", "stage": "階段三 三片組合", "text": "找一條空的縫"}, {"page": "p12", "stage": "階段三 三片組合", "text": "三片完成"}, {"page": "p13", "stage": "階段四 顏色與位置", "text": "顏色放哪裡"}, {"page": "p14", "stage": "階段四 顏色與位置", "text": "先放白色"}, {"page": "p15", "stage": "階段四 顏色與位置", "text": "綠色 放上面"}, {"page": "p16", "stage": "階段四 顏色與位置", "text": "黃色 放右邊"}, {"page": "p17", "stage": "階段四 顏色與位置", "text": "紅色 放下面"}, {"page": "p18", "stage": "階段四 顏色與位置", "text": "藍色 放左邊"}, {"page": "p19", "stage": "階段四 顏色與位置", "text": "完成了"}, {"page": "p20", "stage": "階段四 顏色與位置", "text": "檢查一下"}];
+const V = "1";
+const $ = (s) => document.querySelector(s);
+const img = $("#slide"), dots = $("#pdots");
+const seen = new Set();
+let i = 0;
+
+PAGES.forEach((p, n) => {
+  const b = document.createElement("button");
+  b.setAttribute("aria-label", "第 " + (n + 1) + " 頁");
+  b.onclick = () => show(n);
+  dots.appendChild(b);
+});
+
+function show(n) {
+  i = Math.max(0, Math.min(PAGES.length - 1, n));
+  const p = PAGES[i];
+  img.src = "assets/pages/" + p.page + ".webp?v=" + V;
+  img.alt = "第 " + (i + 1) + " 頁：" + p.text;
+  $("#stage").textContent = p.stage;
+  $("#count").textContent = (i + 1) + " / " + PAGES.length;
+  $("#prev").disabled = i === 0;
+  $("#next").disabled = i === PAGES.length - 1;
+  seen.add(i);
+  [...dots.children].forEach((b, k) => {
+    b.className = k === i ? "cur" : seen.has(k) ? "seen" : "";
+  });
+  document.title = "雪花片圖解 第 " + (i + 1) + " 頁";
+  try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) {}
+  [i + 1, i - 1].forEach((k) => {
+    if (PAGES[k]) new Image().src = "assets/pages/" + PAGES[k].page + ".webp?v=" + V;
+  });
+}
+
+$("#prev").onclick = () => show(i - 1);
+$("#next").onclick = () => show(i + 1);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+  else if (e.key === "Home") show(0);
+  else if (e.key === "End") show(PAGES.length - 1);
+});
+
+let x0 = null;
+img.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+img.addEventListener("touchend", (e) => {
+  if (x0 === null) return;
+  const dx = e.changedTouches[0].clientX - x0; x0 = null;
+  if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+}, { passive: true });
+
+const fsBtn = $("#full");
+function fsOn() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function syncFs() {
+  document.body.classList.toggle("fs", fsOn());
+  fsBtn.textContent = fsOn() ? "⛶ 關閉全螢幕" : "⛶ 全螢幕";
+}
+fsBtn.onclick = () => {
+  const d = document, el = d.documentElement;
+  if (fsOn()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+  else if (el.requestFullscreen || el.webkitRequestFullscreen) { (el.requestFullscreen || el.webkitRequestFullscreen).call(el); }
+  else { fsBtn.hidden = true; }
+};
+document.addEventListener("fullscreenchange", syncFs);
+document.addEventListener("webkitfullscreenchange", syncFs);
+
+const start = parseInt((location.hash || "").replace("#", ""), 10);
+show(Number.isFinite(start) ? start - 1 : 0);
+</script>
+</body>
+</html>
